@@ -1,6 +1,7 @@
 package states.stages;
 
-import states.stages.objects.PerspectiveSprite;
+import states.stages.objects.*;
+import animate.internal.elements.FlxSpriteElement;
 
 import flixel.addons.display.FlxBackdrop;
 import flixel.util.FlxAxes;
@@ -187,10 +188,29 @@ class Sserafim extends BaseStage
         dust2.alpha = 0;
         dust3.alpha = 0;
         dust4.alpha = 0;
+
+        /*
+        var lipSyncSprite = new SserafimLipSyncSprite(0, 0);
+        lipSyncSprite.alpha = 0.5;
+        lipSyncSprite.flipX = true;
+        PlayState.instance.variables.get("stageVariables").set('lipSyncSprite', lipSyncSprite);
+
+        lipSyncSprite.offset.set(7, 2);
+        lipSyncSprite.angle = -14;
+
+        var element:FlxSpriteElement = new FlxSpriteElement(lipSyncSprite);
+        element.active = false; // We disable the element here so we can control when it updates.
+
+        for (frame in boyfriend.getFramesWithKeyword("mouth edit"))
+        {
+            frame.add(element);
+        }
+        */
     }
 
     override function update(elapsed:Float)
     {
+        // if (PlayState.instance.variables.get("stageVariables").get('lipSyncSprite') != null) PlayState.instance.variables.get("stageVariables").get('lipSyncSprite').update(elapsed);
         if(perspectiveFloor != null) perspectiveFloor.updateSkew(PlayState.instance.camGame);
     }
 

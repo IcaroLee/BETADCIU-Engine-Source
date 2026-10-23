@@ -102,23 +102,20 @@ class SchoolEvilErect extends BaseStage
 		PlayState.instance.variables.get("stageVariables").set("trail", trail);
 		addBehindDad(trail);
 
-		if(!ClientPrefs.data.shaders)
-			return;
-
-		wiggleBack = new WiggleEffect(2 * 0.8, 4 * 0.4, 0.011, WiggleEffectType.DREAMY);
-		wiggleSchool = new WiggleEffect(2, 4, 0.017, WiggleEffectType.DREAMY);
-		wiggleSpike = new WiggleEffect(2, 4, 0.01, WiggleEffectType.DREAMY);
-		wiggleGround = new WiggleEffect(2, 4, 0.007, WiggleEffectType.DREAMY);
-
-		school.shader = wiggleSchool.shader;
-		evilstreet.shader = wiggleGround.shader;
-		backspikes.shader = wiggleBack.shader;
-		backspike.shader = wiggleSpike.shader;
-
-		// characters shaders that don't have in game
-
-		if (ClientPrefs.data.shaders)
+		if(ClientPrefs.data.shaders)
 		{
+			wiggleBack = new WiggleEffect(2 * 0.8, 4 * 0.4, 0.011, WiggleEffectType.DREAMY);
+			wiggleSchool = new WiggleEffect(2, 4, 0.017, WiggleEffectType.DREAMY);
+			wiggleSpike = new WiggleEffect(2, 4, 0.01, WiggleEffectType.DREAMY);
+			wiggleGround = new WiggleEffect(2, 4, 0.007, WiggleEffectType.DREAMY);
+
+			school.shader = wiggleSchool.shader;
+			evilstreet.shader = wiggleGround.shader;
+			backspikes.shader = wiggleBack.shader;
+			backspike.shader = wiggleSpike.shader;
+
+			// characters shaders that don't have in game
+
 			applyCharacterShader("boyfriend");
 			applyCharacterShader("dad");
 			applyCharacterShader("gf");

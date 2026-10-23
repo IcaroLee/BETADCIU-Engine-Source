@@ -2942,9 +2942,9 @@ class FunkinLua {
 	public static function makeLuaCharacter(tag:String, character:String, isPlayer:Bool = false) {
 		tag = tag.replace('.', '');
 
-		final modCharMap = PlayState.instance.modchartCharacters;
+		final variables = MusicBeatState.getVariables();
 		
-		var charObj:Character = modCharMap.get(tag);
+		var charObj:Character = variables.get(tag);
 		var pos:FlxPoint = FlxPoint.get(0, 0);
 		var oldChar:String = "";
 		var animationName:String = "no way anyone have an anim name this big";
@@ -2960,11 +2960,13 @@ class FunkinLua {
 			}
 		}
 
+		// PlayState.instance.stopCharacterScripts(charObj.curCharacter);
+
 		charObj?.kill();
 		charObj?.destroy();
 
 		var newChar:Character = new Character(0, 0, character, isPlayer);
-		modCharMap.set(tag, newChar);
+		variables.set(tag, newChar);
 		LuaUtils.getTargetInstance().add(newChar);
 		
 		charObj = newChar;
@@ -2985,9 +2987,12 @@ class FunkinLua {
 
 		PlayState.instance.startCharacterScripts(charObj.curCharacter);
 		PlayState.instance.setOnHScript(tag, charObj);
-    	PlayState.instance.nameScriptsCharacter("characters/" + charObj.curCharacter, tag);
+		// PlayState.instance.setScriptsCharacter(charObj);
 
 		if (PlayState.seenCutscene) {
+			// PlayState.instance.callLuaFile('characters/' + charObj.curCharacter + '.lua', 'onLoad');
+			// PlayState.instance.callHScriptFile('characters/' + charObj.curCharacter + '.hx', 'onLoad');
+
 			PlayState.instance.callLuaFile("characters/" + charObj.curCharacter + '.lua', 'onCreatePost');
 			PlayState.instance.callHScriptFile("characters/" + charObj.curCharacter + '.hx', 'onCreatePost');
 		}

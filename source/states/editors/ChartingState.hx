@@ -1817,13 +1817,15 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		else selectedEventText.visible = false;
 	}
 
+	public static var SHOW_GF_COLUMN:Bool = false;
+
 	function createGrids()
 	{
 		var destroyed:Bool = false;
-		var stripes:Array<Int> = null;
+		var oldStripes:Array<Int> = null;
 		if(prevGridBg != null)
 		{
-			stripes = prevGridBg.stripes;
+			oldStripes = prevGridBg.stripes;
 			remove(prevGridBg);
 			remove(gridBg);
 			remove(nextGridBg);
@@ -1833,15 +1835,42 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			destroyed = true;
 		}
 
-		var columnCount:Int = (GRID_COLUMNS_PER_PLAYER * GRID_PLAYERS) + (SHOW_EVENT_COLUMN ? 1 : 0);
+		var gfColumns:Int = SHOW_GF_COLUMN ? 4 : 0;
+		var columnCount:Int = (GRID_COLUMNS_PER_PLAYER * GRID_PLAYERS) + gfColumns + (SHOW_EVENT_COLUMN ? 1 : 0);
+		
 		gridBg = new ChartingGridSprite(columnCount, gridColors[0], gridColors[1]);
 		gridBg.screenCenter(X);
 
 		prevGridBg = new ChartingGridSprite(columnCount, gridColorsOther[0], gridColorsOther[1]);
 		nextGridBg = new ChartingGridSprite(columnCount, gridColorsOther[0], gridColorsOther[1]);
-		prevGridBg.x = nextGridBg.x = gridBg.x;
-		prevGridBg.stripes = nextGridBg.stripes = gridBg.stripes = stripes;
 		
+		prevGridBg.x = nextGridBg.x = gridBg.x;
+
+		var gridStripes:Array<Int> = [];
+		var columnsTrack:Int = 0;
+		if(SHOW_EVENT_COLUMN) columnsTrack++;
+
+		for (i in 0...GRID_PLAYERS)
+		{
+			if(columnsTrack > 0) gridStripes.push(columnsTrack);
+			columnsTrack += GRID_COLUMNS_PER_PLAYER;
+		}
+
+		if(SHOW_GF_COLUMN)
+		{
+			gridStripes.push(columnsTrack);
+			columnsTrack += 4;
+		}
+		
+		prevGridBg.stripes = nextGridBg.stripes = gridBg.stripes = gridStripes;
+		
+		if(timeLine != null)
+		{
+			timeLine.x = gridBg.x;
+			timeLine.setGraphicSize(Std.int(gridBg.width), 4);
+			timeLine.updateHitbox();
+		}
+
 		if(destroyed)
 		{
 			insert(getFirstNull(), prevGridBg);
@@ -2385,9 +2414,12 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var characterData:Dynamic = {};
 	function updateJsonData():Void
 	{
-		for (i in 1...GRID_PLAYERS+1)
+		for (i in 1...GRID_PLAYERS + 1)
 		{
-			//trace('adding iconP$i');
+			var charName = Reflect.field(PlayState.SONG, 'player$i');
+			if (charName == null) {
+				Reflect.setField(PlayState.SONG, 'player$i', 'bf');
+			}
 			var data:CharacterFile = loadCharacterFile(Reflect.field(PlayState.SONG, 'player$i'));
 			Reflect.setField(characterData, 'iconP$i', data != null && data.healthicon != null ? data.healthicon : 'face');
 			Reflect.setField(characterData, 'vocalsP$i', data != null && data.vocals_file != null ? data.vocals_file : '');
@@ -2396,18 +2428,19 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	
 	var _lastSec:Int = -1;
 	var _lastGfSection:Null<Bool> = null;
+
 	function updateHeads(ignoreCheck:Bool = false):Void
 	{
 		var curSecData:SwagSection = PlayState.SONG.notes[curSec];
 		var isGfSection:Bool = (curSecData != null && curSecData.gfSection == true);
-		if(_lastGfSection == isGfSection && _lastSec == curSec && !ignoreCheck) return; //optimization
+		if(_lastGfSection == isGfSection && _lastSec == curSec && !ignoreCheck) return;
 
 		for (i in 0...GRID_PLAYERS)
 		{
 			var icon:HealthIcon = icons[i];
-			//trace('changing iconP${icon.ID}');
-			var iconName:String = Reflect.field(characterData, 'iconP${icon.ID}');
-			icon.changeIcon(iconName);
+			var iconName:String = Reflect.field(characterData, 'iconP${i + 1}');
+			if (icon != null && iconName != null)
+				icon.changeIcon(iconName);
 		}
 
 		if(icons.length > 1)
@@ -2417,15 +2450,15 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			var mustHitSection:Bool = (curSecData != null && curSecData.mustHitSection == true);
 			if (isGfSection)
 			{
-				if (mustHitSection)
+				if (mustHitSection && iconP1 != null)
 					iconP1.changeIcon('gf');
-				else
+				else if (iconP2 != null)
 					iconP2.changeIcon('gf');
 			}
 
-			if(mustHitSection)
+			if(mustHitSection && iconP1 != null)
 				mustHitIndicator.x = iconP1.x + iconP1.width/2;
-			else
+			else if (iconP2 != null)
 				mustHitIndicator.x = iconP2.x + iconP2.width/2;
 		}
 		_lastGfSection = isGfSection;
@@ -3337,7 +3370,9 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var playerDropDown:PsychUIDropDownMenu;
 	var opponentDropDown:PsychUIDropDownMenu;
 	var girlfriendDropDown:PsychUIDropDownMenu;
-	
+	var extraCharDropDown:PsychUINumericStepper;
+	var isGFStrumDropDown:PsychUICheckBox;
+
 	function addSongTab()
 	{
 		var tab = mainBox.getTab('Song');
@@ -3431,6 +3466,37 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		{
 			shiftNotes(Std.int(stepperShiftNoteDial.value), Std.int(stepperShiftNoteDialStep.value), Std.int(stepperShiftNoteDialMs.value), changeBpmStepper.value);
 		}, btnWid);
+
+		extraCharDropDown = new PsychUINumericStepper(objX + 150, objY + 40, 1, GRID_PLAYERS, 1, 99, 0);
+		extraCharDropDown.onValueChange = function()
+		{
+			var targetCount:Int = Std.int(extraCharDropDown.value);
+			
+			while (GRID_PLAYERS != targetCount)
+			{
+				if (GRID_PLAYERS < targetCount)
+					addChar(true);
+				else if (GRID_PLAYERS > 1)
+					addChar(false);
+				else
+					break;
+			}
+			
+			if (gridBg != null && prevGridBg != null && nextGridBg != null)
+				createGrids();
+			
+			reloadNotesDropdowns();
+			updateHeads(true);
+		};
+
+		isGFStrumDropDown = new PsychUICheckBox(objX + 150, objY + 80, 'Is GF Strum', 80, function()
+		{
+			SHOW_GF_COLUMN = isGFStrumDropDown.checked;
+			
+			addChar(true);
+			addChar(false);
+		});
+		isGFStrumDropDown.checked = SHOW_GF_COLUMN;
 		
 		tab_group.add(new FlxText(bpmStepper.x, bpmStepper.y - 15, 50, 'BPM:'));
 		tab_group.add(new FlxText(scrollSpeedStepper.x, scrollSpeedStepper.y - 15, 80, 'Scroll Speed:'));
@@ -3452,6 +3518,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(new FlxText(playerDropDown.x, playerDropDown.y - 15, 80, 'Player:'));
 		tab_group.add(new FlxText(opponentDropDown.x, opponentDropDown.y - 15, 80, 'Opponent:'));
 		tab_group.add(new FlxText(girlfriendDropDown.x, girlfriendDropDown.y - 15, 80, 'Girlfriend:'));
+		tab_group.add(new FlxText(extraCharDropDown.x, extraCharDropDown.y - 15, 80, 'Extra Char:'));
+
+		tab_group.add(extraCharDropDown);
+		tab_group.add(isGFStrumDropDown);
+
 		tab_group.add(stageDropDown);
 		tab_group.add(girlfriendDropDown);
 		tab_group.add(opponentDropDown);
@@ -5610,6 +5681,89 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			trace('Error getting stats for directory "' + dirPath + '": ' + e);
 			return null;
 		}
+	}
+
+	function addChar(isAdd:Bool):Void {
+		if (isAdd) 
+			GRID_PLAYERS += 1;
+		else if (!isAdd && GRID_PLAYERS > 1)
+			GRID_PLAYERS -= 1;
+
+		createGrids();
+
+		strumLineNotes.clear();
+		var startX:Float = gridBg.x;
+		var startY:Float = FlxG.height / 2;
+		if(SHOW_EVENT_COLUMN) startX += GRID_SIZE;
+
+		var gfColumns:Int = SHOW_GF_COLUMN ? 4 : 0;
+		var totalColumns:Int = (GRID_PLAYERS * GRID_COLUMNS_PER_PLAYER) + gfColumns;
+		
+		for (i in 0...Std.int(totalColumns))
+		{
+			var note:StrumNote = new StrumNote(startX + (GRID_SIZE * i), startY, i % GRID_COLUMNS_PER_PLAYER, 0);
+			note.scrollFactor.set();
+			note.playAnim('static');
+			note.alpha = 0.4;
+			note.updateHitbox();
+			if(note.width > note.height)
+				note.setGraphicSize(GRID_SIZE);
+			else
+				note.setGraphicSize(0, GRID_SIZE);
+
+			note.updateHitbox();
+			note.x += GRID_SIZE/2 - note.width/2;
+			note.y += GRID_SIZE/2 - note.height/2;
+			strumLineNotes.add(note);
+		}
+
+		for (icon in icons)
+		{
+			if (icon != null) icon.destroy();
+		}
+		icons = [];
+
+		var iconX:Float = gridBg.x;
+		var iconY:Float = 50;
+		if(SHOW_EVENT_COLUMN)
+		{
+			iconX += GRID_SIZE;
+		}
+
+		for (i in 0...GRID_PLAYERS)
+		{
+			var icon:HealthIcon = new HealthIcon();
+			icon.autoAdjustOffset = false;
+			icon.y = iconY;
+			icon.alpha = 0.6;
+			icon.scrollFactor.set();
+			icon.scale.set(0.3, 0.3);
+			icon.updateHitbox();
+			icon.ID = i + 1;
+			add(icon);
+			icons.push(icon);
+			
+			icon.x = iconX + (GRID_SIZE * GRID_COLUMNS_PER_PLAYER * i) + (GRID_SIZE * (GRID_COLUMNS_PER_PLAYER / 2)) - icon.width / 2;
+		}
+
+		if(SHOW_GF_COLUMN)
+		{
+			var gfIcon:HealthIcon = new HealthIcon();
+			gfIcon.autoAdjustOffset = false;
+			gfIcon.y = iconY;
+			gfIcon.alpha = 0.6;
+			gfIcon.scrollFactor.set();
+			gfIcon.scale.set(0.3, 0.3);
+			gfIcon.updateHitbox();
+			gfIcon.changeIcon('gf');
+			add(gfIcon);
+			icons.push(gfIcon);
+			
+			gfIcon.x = iconX + (GRID_SIZE * GRID_COLUMNS_PER_PLAYER * GRID_PLAYERS) + (GRID_SIZE * (4 / 2)) - gfIcon.width / 2;
+		}
+
+		updateJsonData();
+		updateHeads(true);
 	}
 }
 

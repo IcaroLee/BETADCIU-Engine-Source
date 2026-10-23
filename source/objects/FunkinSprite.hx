@@ -139,6 +139,71 @@ class FunkinSprite extends FlxAnimate
     }
 
     /**
+   * Gets every frame on every symbol that starts with the given keyword.
+   * @param keyword The keyword to search for.
+   * @return An array of frames.
+   */
+    public function getFramesWithKeyword(keyword:String):Array<animate.internal.Frame>
+    {
+        if (!this.isAnimate)
+        {
+            trace('WARNING: getFramesWithKeyword() only works on texture atlases!');
+            return [];
+        }
+
+        var symbolItems:Array<animate.internal.SymbolItem> = [];
+        var frames:Array<animate.internal.Frame> = [];
+
+        @:privateAccess
+        {
+            for (symbol in this.library.dictionary.keys())
+            {
+                var foundSymbol:Null<animate.internal.SymbolItem> = this.library.getSymbol(symbol);
+                if (foundSymbol == null) continue;
+
+                if (foundSymbol.name != null && foundSymbol.name.contains(keyword))
+                {
+                    symbolItems.push(foundSymbol);
+                }
+            }
+
+            // Use a distinct iterator variable name like 'item' to prevent scope conflicts
+            for (item in symbolItems)
+            {
+                if (item != null && item.timeline != null)
+                {
+                    item.timeline.forEachLayer((layer) ->
+                    {
+                        if (layer != null)
+                        {
+                            layer.forEachFrame((frame) ->
+                            {
+                                if (frame != null) frames.push(frame);
+                            });
+                        }
+                    });
+                }
+            }
+        }
+
+        return frames;
+    }
+
+    /**
+   * Returns the default symbol in the atlas.
+   */
+    public function getDefaultSymbol():String
+    {
+        if (!this.isAnimate)
+        {
+            trace('WARNING: getDefaultSymbol() only works on texture atlases!');
+            return '';
+        }
+
+        return library.timeline.name;
+    }
+
+    /**
      * Returns the screen position of this object.
      *
      * @param   result  Optional arg for the returning point

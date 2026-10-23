@@ -6,12 +6,14 @@ class HealthIcon extends FlxSprite
 	public var isPlayer:Bool = false;
 	public var hasWinning:Bool = true;
 	public var char:String = '';
+	public var curIcon:String = '';
 
 	public function new(char:String = 'face', isPlayer:Bool = false, ?allowGPU:Bool = true)
 	{
 		super();
 		this.isPlayer = isPlayer;
 		changeIcon(char, allowGPU);
+		curIcon = char;
 		scrollFactor.set();
 	}
 
@@ -57,6 +59,8 @@ class HealthIcon extends FlxSprite
 			this.animation.curAnim.curFrame = curAnimation;
 			this.char = char;
 			this.hasWinning = hasWin;
+
+			curIcon = char;
 
 			if(char.endsWith('-pixel'))
 				antialiasing = false;
