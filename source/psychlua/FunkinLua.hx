@@ -1804,8 +1804,6 @@ class FunkinLua {
 			}
 		});
 		Lua_helper.add_callback(lua, "changeCharacter", function(tag:String, character:String) {
-			PlayState.instance.callOnChange("characterChange", tag, character);
-
 			switch(tag.toLowerCase().trim()) {
 				case 'gf' | 'girlfriend' | "2":
 					changeCharacterAuto("gf", character);
@@ -1819,8 +1817,6 @@ class FunkinLua {
 					else luaTrace("changeCharacter: " + tag + " doesn't exist!", false, false, FlxColor.RED);
 					
 			}
-
-			PlayState.instance.callOnChange("characterChangePost", tag, character);
 		});
 		Lua_helper.add_callback(lua, "makeLuaCharacter", function(tag:String, character:String, isPlayer:Bool = false) {
 			// if(this.scriptType.toLowerCase() == "stage" || this.scriptType.toLowerCase() == "stagecamera") 
@@ -2940,6 +2936,8 @@ class FunkinLua {
 	}
 	
 	public static function makeLuaCharacter(tag:String, character:String, isPlayer:Bool = false) {
+		PlayState.instance.callOnScripts('onCharacterChange', [tag, character]);
+		
 		tag = tag.replace('.', '');
 
 		final variables = MusicBeatState.getVariables();
@@ -2987,7 +2985,7 @@ class FunkinLua {
 
 		PlayState.instance.startCharacterScripts(charObj.curCharacter);
 		PlayState.instance.setOnHScript(tag, charObj);
-		// PlayState.instance.setScriptsCharacter(charObj);
+		PlayState.instance.setHScriptCharacter(charObj);
 
 		if (PlayState.seenCutscene) {
 			// PlayState.instance.callLuaFile('characters/' + charObj.curCharacter + '.lua', 'onLoad');
@@ -2998,10 +2996,13 @@ class FunkinLua {
 		}
 
 		charObj.charName = tag;
+		PlayState.instance.callOnScripts('onCharacterChangePost', [tag, character]);
 	}
 
 	// Combined them all into one function
 	public static function changeCharacterAuto(target:String, id:String, ?dontDestroy:Bool = false) {
+		PlayState.instance.callOnScripts('onCharacterChange', [target, id]);
+
 		var charObj:Character;
 		var pos:FlxPoint = FlxPoint.get(0, 0);
 		var oldChar:String;
@@ -3079,6 +3080,14 @@ class FunkinLua {
 
 		PlayState.instance.setOnHScript(target, charObj);
 		PlayState.instance.startCharacterScripts(charObj.curCharacter);
+		PlayState.instance.setHScriptCharacter(charObj);
+
+		if (PlayState.seenCutscene) {
+			PlayState.instance.callLuaFile("characters/" + charObj.curCharacter + '.lua', 'onCreatePost');
+			PlayState.instance.callHScriptFile("characters/" + charObj.curCharacter + '.hx', 'onCreatePost');
+		}
+
+		PlayState.instance.callOnScripts('onCharacterChangePost', [target, id]);
 	}
 
 	#if (!flash && MODS_ALLOWED && sys)

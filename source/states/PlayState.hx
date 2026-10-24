@@ -2727,7 +2727,7 @@ class PlayState extends MusicBeatState
 				usedNoteSkinEvent = true;
 			case 'Change Character':
 				hardCodedStage?.characterChange(value1, value2);
-				callOnScripts('onCharacterChange', [value1, value2]);
+				// callOnScripts('onCharacterChange', [value1, value2]);
 
 				//var charType:Int = 0;
 				switch(value1.toLowerCase().trim()) {
@@ -2748,7 +2748,7 @@ class PlayState extends MusicBeatState
 				reloadHealthBarColors();
 
 				hardCodedStage?.characterChangePost(value1, value2);
-				callOnScripts('onCharacterChangePost', [value1, value2]);
+				// callOnScripts('onCharacterChangePost', [value1, value2]);
 			case 'Change Scroll Speed':
 				if (songSpeedType != "constant")
 				{
@@ -4105,7 +4105,7 @@ class PlayState extends MusicBeatState
 		{
 			if (Iris.instances.exists(scriptToLoad)){
 				var script:HScript = cast (Iris.instances.get(scriptToLoad), HScript);
-				script.set("parent", char);
+				script.set("this", char);
 				return true;
 			};
 		}
